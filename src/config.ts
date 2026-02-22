@@ -1,0 +1,69 @@
+import fs from "fs";
+import os from "os";
+import path from "path";
+import { z } from 'zod';
+
+const ConfigSchema = z.object({
+    dbUrl: z.string(),
+    currentUserName: z.string(),
+});
+
+export type Config = z.infer<typeof ConfigSchema>;
+
+export function setUser(name: string) {
+    const config = readConfig();
+
+    config.currentUserName = name;
+    
+    writeConfig(config);
+
+    console.log(`Config File Updated, Current User Name successfully set to ${name}`);
+}
+
+export function readConfig(): Config {
+    const filePath = getConfigFilePath();
+    
+    try {
+        const jsonString = fs.readFileSync(filePath, 'utf8');
+        
+        if (jsonString !== '') {
+            const validatedConfig = validateConfig(jsonString);
+            return validatedConfig;
+        }
+
+    } catch (err) {
+        console.error('Error reading file:', err);
+    }
+
+    return { dbUrl: '', currentUserName: '' };
+}
+
+function getConfigFilePath(): string {
+    const homeDir = os.homedir();
+    const fullPath = path.join(homeDir, '.gatorconfig.json');
+    return fullPath;
+}
+
+function writeConfig(cfg: Config): void {
+    const jsonObject = JSON.stringify(cfg);
+    const filePath = getConfigFilePath();
+
+    try {
+        fs.writeFileSync(filePath, jsonObject, 'utf8');
+        console.log('File written successfully.');
+    } catch (err) {
+        console.error('Error writing file:', err);
+    }
+
+}
+
+
+function validateConfig(rawConfig: any): Config { 
+    try {
+        const config: Config = ConfigSchema.parse(JSON.parse(rawConfig));
+        return config;
+    } catch (error) {
+        console.error('Validation failed:', error);
+        return { dbUrl: '', currentUserName: '' };
+    }
+}
