@@ -17,7 +17,7 @@ export function setUser(name: string) {
     
     writeConfig(config);
 
-    console.log(`Config File Updated, Current User Name successfully set to ${name}`);
+    console.log(`Config File Updated, Current User Name successfully has been set to ${name}`);
 }
 
 export function readConfig(): Config {
