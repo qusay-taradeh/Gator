@@ -1,6 +1,7 @@
 import { XMLParser } from "fast-xml-parser";
 import { User } from "./lib/db/queries/users";
-import { Feed } from "./lib/db/queries/feeds";
+import { Feed, markFeedFetched, getNextFeedToFetch } from "./lib/db/queries/feeds";
+import { createPost } from "./lib/db/queries/posts";
 
 type RSSFeed = {
     channel: {
@@ -92,4 +93,46 @@ export function printFeed(user: User, feed: Feed) {
     console.log(`==================================================`);
     console.log(`${feed.name} info: \nName: ${feed.name}\nURL: ${feed.url}`);
     console.log(`Created at: ${feed.createdAt}\nUpdated at: ${feed.updatedAt}`);
+}
+
+function parsePublishedAt(pubDate: string | undefined): string | null {
+    if (!pubDate)
+        return null;
+
+    const date = new Date(pubDate);
+
+    if (isNaN(date.getTime()))
+        return null;
+
+    return date.toISOString();
+}
+
+export async function scrapeFeeds() {
+
+    const nextFeedToFetch = await getNextFeedToFetch();
+
+    const rssFeed = await fetchFeed(nextFeedToFetch.url);
+
+    console.log(`Feed Title: ${rssFeed.channel.title}`);
+    console.log(`Description: ${rssFeed.channel.description}`);
+    console.log(`Link: ${rssFeed.channel.link}`);
+
+
+    const posts = rssFeed.channel.item;
+    for (let index = 0; index < posts.length; index++) {
+        const post = posts[index];
+
+        await createPost(
+            post.title,
+            post.link,
+            post.description,
+            parsePublishedAt(post.pubDate),
+            nextFeedToFetch.id
+        );
+    }
+
+    console.log(`Feed Posts Stored in database`);
+
+    await markFeedFetched(nextFeedToFetch);
+
 }

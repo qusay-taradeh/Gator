@@ -28,6 +28,7 @@ export async function getFeedFollowRecords() {
 export async function getFeedFollowsForUser(user: User) {
     const result = await db.select().from(feed_follows)
     .innerJoin(users, eq(feed_follows.user_id, user.id))
+    .where(eq(feed_follows.user_id, user.id))
     .innerJoin(feeds, eq(feed_follows.feed_id, feeds.id));
     
     return result;
